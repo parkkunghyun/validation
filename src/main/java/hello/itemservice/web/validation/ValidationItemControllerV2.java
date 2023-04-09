@@ -22,10 +22,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ValidationItemControllerV2 {
+    private final ItemRepository itemRepository;
+    private final ItemValidator itemValidator;
     // 검증 오류 결과를 보관!
 
-
-    private final ItemRepository itemRepository;
+   // private final ItemRepository itemRepository;
 
     @GetMapping
     public String items(Model model) {
@@ -155,12 +156,8 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}";
     }
 
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String addItemV4(@ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
-        // bindingResult에는 자체적으로 타겟을 가지고 있음!
-        // log.info("objectName={}", bindingResult.getObjectName());
-        // log.info("target={}", bindingResult.getTarget());
-
         if(!StringUtils.hasText(item.getItemName())) {
             // itemName에 글자가 없을시
            // bindingResult.addError(new FieldError("item", "itemName",item.getItemName(), false, new String[]{"required.item.itemName"},null, "상품이름은 필수입니다!"));
@@ -182,6 +179,25 @@ public class ValidationItemControllerV2 {
                 bindingResult.reject("totalPriceMin", new Object[]{10000,result }, null);
             }
         }
+        // 검증에 실패하면 다시 입력 폼으로!
+        if(bindingResult.hasErrors()) {
+            // view에 자동으로 modle에 담김!
+            // model.addAttribute("errors",bindingResult);
+            log.info("errors ={}",bindingResult);
+            return "validation/v2/addForm";
+        }
+
+        // 이 에러가 안걸리면 아래가 실행!
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+
+    @PostMapping("/add")
+    public String addItemV5(@ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
+
+        itemValidator.validate(item,bindingResult);
         // 검증에 실패하면 다시 입력 폼으로!
         if(bindingResult.hasErrors()) {
             // view에 자동으로 modle에 담김!
